@@ -36,6 +36,23 @@ output:
     # Default is 3
     attempts: 2
 
+  # Writes json logs over TLS
+  jotls:
+    enabled: false
+    attempts: 2
+
+    # Configure the type of socket this should be, default is unixgram
+    # This maps to `network` in golangs net.Dial: https://golang.org/pkg/net/#Dial
+    network: tcp
+
+    # Set the remote address to connect to, this can be a path or an ip address
+    # This maps to `address` in golangs net.Dial: https://golang.org/pkg/net/#Dial
+    address: 192.2.0.1:8443
+
+    # Configure if you wish to check the TLS certificate on the endpoint is valid for
+    # the address. Default value is false
+    insecure: false
+
   # Writes logs to syslog
   syslog:
     enabled: false

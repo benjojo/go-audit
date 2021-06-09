@@ -2,6 +2,7 @@ package main
 
 import (
 	"compress/flate"
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -102,6 +103,14 @@ func createOutput(config *viper.Viper) (*AuditWriter, error) {
 	var err error
 	i := 0
 
+	if config.GetBool("output.jotls.enabled") == true {
+		i++
+		writer, err = createJoTLSOutput(config)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if config.GetBool("output.syslog.enabled") == true {
 		i++
 		writer, err = createSyslogOutput(config)
@@ -200,6 +209,23 @@ func createSyslogOutput(config *viper.Viper) (*AuditWriter, error) {
 	}
 
 	return NewAuditWriter(syslogWriter, attempts), nil
+}
+
+func createJoTLSOutput(config *viper.Viper) (*AuditWriter, error) {
+	attempts := config.GetInt("output.jotls.attempts")
+	if attempts < 1 {
+		return nil, fmt.Errorf("Output attempts for jotls must be at least 1, %v provided", attempts)
+	}
+
+	tlsW, err := tls.Dial(config.GetString("output.jotls.network"), config.GetString("output.jotls.address"), &tls.Config{
+		InsecureSkipVerify: config.GetBool("output.jotls.insecure"),
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to open jotls writer. Error: %v", err)
+	}
+
+	return NewAuditWriter(tlsW, attempts), nil
 }
 
 func createFileOutput(config *viper.Viper) (*AuditWriter, error) {
