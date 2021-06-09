@@ -27,6 +27,7 @@ type AuditMessage struct {
 	AuditTime string `json:"-"`
 
 	Containers map[string]string `json:"containers,omitempty"`
+	Enhanced   map[string]string `json:"enhanced,omitempty"`
 }
 
 type AuditMessageGroup struct {
@@ -53,6 +54,20 @@ func NewAuditMessageGroup(am *AuditMessage) *AuditMessageGroup {
 	return amg
 }
 
+func splitsAuditMessageData(data string) map[string]string {
+	o := make(map[string]string)
+	// arch=c00000b7 syscall=206 success=yes exit=56 a0=3 a1=40000ae000 a2=38 a3=0 items=0 ppid=17769 pid=17779 auid=0 uid=0 gid=0 euid=0 suid=0 fsuid=0 egid=0 sgid=0 fsgid=0 tty=pts0 ses=197 comm=\"go-audit\" exe=\"/usr/bin/go-audit\" subj==unconfined key=(null)
+	for _, v := range strings.Fields(data) {
+		bits := strings.SplitAfterN(v, "=", 2)
+		if len(bits) == 2 {
+			bits[0] = strings.Trim(bits[0], "=")
+			bits[1] = strings.TrimPrefix(bits[1], "=")
+			o[bits[0]] = bits[1]
+		}
+	}
+	return o
+}
+
 // Creates a new go-audit message from a netlink message
 func NewAuditMessage(nlm *syscall.NetlinkMessage) *AuditMessage {
 	aTime, seq := parseAuditHeader(nlm)
@@ -61,6 +76,7 @@ func NewAuditMessage(nlm *syscall.NetlinkMessage) *AuditMessage {
 		Data:      string(nlm.Data),
 		Seq:       seq,
 		AuditTime: aTime,
+		Enhanced:  splitsAuditMessageData(string(nlm.Data)),
 	}
 }
 
