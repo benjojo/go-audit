@@ -33,7 +33,10 @@ var el = log.New(os.Stderr, "", 0)
 type executor func(string, ...string) error
 
 func lExec(s string, a ...string) error {
-	return exec.Command(s, a...).Run()
+	e := exec.Command(s, a...)
+	e.Stdout = os.Stdout
+	e.Stderr = os.Stderr
+	return e.Run()
 }
 
 func loadConfig(configFile string) (*viper.Viper, error) {
@@ -82,7 +85,7 @@ func setRules(config *viper.Viper, e executor) error {
 			}
 
 			if err := e("auditctl", strings.Fields(v)...); err != nil {
-				return fmt.Errorf("Failed to add rule #%d. Error: %s", i+1, err)
+				return fmt.Errorf("Failed to add rule #%d. Error: %s -- %v", i+1, err, v)
 			}
 
 			l.Printf("Added audit rule #%d\n", i+1)
